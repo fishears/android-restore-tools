@@ -7,13 +7,13 @@ import optparse
 import os
 import sqlite3
 import sys
-from Tkinter import Tk, Text, Label, Button, Frame, END
-import tkFileDialog
+from tkinter import Tk, Text, Label, Button, Frame, END
+from tkinter import filedialog
 from xml.etree import ElementTree as etree
 import webbrowser
 
 def v(x):
-    xs = unicode(x)
+    xs = str(x)
     if xs == "":
         return "null"
     elif x is None:
@@ -30,12 +30,12 @@ def read_messages(dbfile):
     count = c.fetchone()[0]
 
     smses = etree.Element("smses", attrib={"count": str(count)})
-    c.execute("SELECT _id, thread_id, address, person, date, protocol, read, priority, status, type, callback_number, reply_path_present, subject, body, service_center, failure_cause, locked, error_code, stack_type, seen, sort_index FROM sms ORDER BY date DESC")
+    c.execute("SELECT _id, thread_id, address, person, date, protocol, read, status, type, reply_path_present, subject, body, service_center, sub_id, subject, subject,  locked, date_sent,  error_code, seen FROM sms ORDER BY date DESC")
     while True:
         row = c.fetchone()
         if row is None: break
 
-        rec_id, thread_id, address, person, date, protocol, read, priority, status, type, callback_number, reply_path_present, subject, body, service_center, failure_cause, locked, error_code, stack_type, seen, sort_index = row
+        rec_id, thread_id, address, person, date, protocol, read, status, type, reply_path_present, subject, body, service_center, sub_id, toa, sc_toa, locked, date_sent, error_code, seen = row
 
         if protocol is None:
             protocol = 0
@@ -54,6 +54,7 @@ def read_messages(dbfile):
             "status": v(status),
             "locked": v(locked),
             "readable_date": datetime.datetime.fromtimestamp(date/1000).strftime("%b %d, %Y %l:%M:%S %p"),
+            "date_sent": v(date),
             })
         smses.append(sms)
 
@@ -69,7 +70,7 @@ def cli():
         sys.exit(1)
 
     messages = read_messages(args[0])
-    print "Read %s messages" % messages.attrib["count"]
+    print("Read %s messages" % messages.attrib["count"])
     newest = datetime.datetime.fromtimestamp(int(messages.getchildren()[0].attrib["date"])/1000)
     if opts.output is None:
         opts.output = newest.strftime("sms-%Y%m%d%H%M%S.xml")
@@ -84,15 +85,15 @@ def cli():
     etree.ElementTree(messages).write(
         opts.output, encoding="utf-8", xml_declaration=True)
 
-    print "Messages saved to %s." % opts.output
-    print "Now copy this file to your SD Card into "
-    print "SMSBackupRestore folder and use SMS Backup & Restore by Ritesh Sahu"
-    print "to restore your messages."
-    print "Google Play store link to the app (free version): http://goo.gl/ZO5cy"
+    print ("Messages saved to %s." % opts.output)
+    print ("Now copy this file to your SD Card into ")
+    print ("SMSBackupRestore folder and use SMS Backup & Restore by Ritesh Sahu")
+    print ("to restore your messages.")
+    print ("Google Play store link to the app (free version): http://goo.gl/ZO5cy")
 
 class Gui(Frame):
     def open_file(self):
-        filename = tkFileDialog.askopenfilename(parent=self, filetypes=[("Database Files", "*.db"),
+        filename = filedialog.askopenfilename(parent=self, filetypes=[("Database Files", "*.db"),
                                                                         ("All files", "*.*")])
         try:
             os.stat(filename)
@@ -105,7 +106,7 @@ class Gui(Frame):
         newest = datetime.datetime.fromtimestamp(int(self.messages.getchildren()[0].attrib["date"])/1000)
         output = newest.strftime("sms-%Y%m%d%H%M%S.xml")
         
-        filename = tkFileDialog.asksaveasfilename(parent=self,
+        filename = filedialog.asksaveasfilename(parent=self,
                                                   filetypes=[("XML Files", "*.xml"),
                                                              ("All files", "*.*")],
                                                   initialfile=output)
